@@ -37,9 +37,9 @@ printf "              ${GRE}animeraw.org${NC}\n"
 echo "------------------------------------------"
 animeraworglist=$(curl -s "https://animeraw.org/?s=$titlenameplus" |  egrep -o 'https?://[^ ]+' | sed 's/".*$//g' | sort | uniq -c | sort -nr  | grep '^\s*4\s' | sed 's/^\s*[0-9]*\s*//')
 while IFS= read -r line ; do
-	link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/Anime Raw$//')
-	printf "${GRE}$link${NC}\n"
-	curl -s "$line" | egrep -o 'https?://mega.nz[^ ]+'
+        link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/Anime Raw$//')
+        printf "${GRE}-- $link${NC}\n"
+        curl -s "$line" | egrep -o 'https?://mega.nz[^ ]+'
 done <<< "$animeraworglist"
 }
 
@@ -48,20 +48,20 @@ animekayo () {
 echo "------------------------------------------"
 printf "               ${GRE}Animekayo${NC}\n"
 echo "------------------------------------------"
-animekayolist=$(curl -s "https://animekayo.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/^.*\.jpg/d;/animekayo.com\/search/d'  | grep "$titlenamedots"  | sort -u)
+animekayolist=$(curl -s "https://animekayo.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/\.jpg$/d;/\.png$/d;/animekayo.com\/search/d'  | grep "$titlenamedots"  | sort -u)
 while IFS= read -r line ; do
-	number=$(curl -s "$line" | grep -Eo "p=[0-9]+" | head -n1 | sed 's/p=//')
-	title=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}' | awk -F "|" '{print $1}')
-	printf "${GRE}$title${NC}\n"
-	link=$(curl -s 'https://animekayo.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$number&mirror=1&num=no")
-	linkpart=$(echo "$link" | sed 's/^.*\///')
-	ouo=$(curl -s -XPOST -H 'Content-Type: application/x-www-form-urlencoded' -d "domain=ouo.press&path=$linkpart" 'https://universal-bypass.org/crowd/query_v1')
-	if test -z "$ouo"
-		then
-	echo "$link"
-		else
-	echo "$ouo"
-		fi
+        number=$(curl -s "$line" | grep -Eo "p=[0-9]+" | head -n1 | sed 's/p=//')
+        title=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}' | awk -F "|" '{print $1}')
+        printf "${GRE}-- $title${NC}\n"
+        link=$(curl -s 'https://animekayo.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$number&mirror=1&num=no")
+        linkpart=$(echo "$link" | sed 's/^.*\///')
+        ouo=$(curl -s -XPOST -H 'Content-Type: application/x-www-form-urlencoded' -d "domain=ouo.press&path=$linkpart" 'https://universal-bypass.org/crowd/query_v1')
+        if test -z "$ouo"
+                then
+        echo "$link"
+                else
+        echo "$ouo"
+                fi
 done <<< "$animekayolist"
 }
 
@@ -71,43 +71,43 @@ echo "------------------------------------------"
 printf "             ${GRE}AnimeKaizoku${NC}\n"
 echo "------------------------------------------"
 # animekaizoku
-animelist=$(curl -s "https://animekaizoku.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/^.*\.jpg/d;/animekaizoku.com\/search/d'  | grep "$titlenamedots"  | sort -u)
+animelist=$(curl -s "https://animekaizoku.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/\.jpg$/d;/\.png$/d;/animekaizoku.com\/search/d'  | grep "$titlenamedots"  | sort -u)
 while IFS= read -r line ; do
-	animenumber=$(curl -s "$line" | grep -oP '(?<=postid-)[0-9]+')
-	listofgdrive=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
-	gdrivebatch=$(echo "$listofgdrive" | grep -B10000 "<a>Batch</a>" | sed '$ d' )
-	if echo "$gdrivebatch" | grep -q "$resolution" ; then
-		gdriveprebatch=$(echo "$gdrivebatch" | grep "$resolution" | head -n1)
-	else
-		gdriveprebatch=$(echo "$gdrivebatch" | head -n1)
-	fi
-	gdrivepostbatch=$(echo "$listofgdrive" | grep -A10000 "<a>Batch</a>" | tail -n +2 )
-#	listofkaizoku=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=2&useworker=yes&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
-#	kaiprebatch=$(echo "$listofkaizoku" | grep -B10000 "<a>Batch</a>" | sed '$ d' )
-#	kaipostbatch=$(echo "$listofkaizoku" | grep -A10000 "<a>Batch</a>" | tail -n +2 )
-#	printf "${RED}Google Drive${NC} \n"
-	while IFS= read -r gline ; do
-		name=$(echo "$gline" | sed 's/^.*<p>//;s/<\/p>.*$//')
-		printf "${GRE}$name${NC} \n"
-			num=$(echo "$gline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
-			listoflist=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
-			while IFS= read -r lline ; do
-				num=$(echo "$lline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
-				string=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=0")
-				name=$(echo "$string"  | sed 's/^.*<p>Download //;s/<\/p>.*$//')
-				link=$(echo "$string"  | cut -d "\"" -f2 | cut -d "\"" -f1 | base64 -d)
-				printf "${YE}$name${NC} \n"
-				echo "$link"
-			done <<< "$listoflist"
-	done <<< "$gdriveprebatch"
-			while IFS= read -r lline ; do
-				num=$(echo "$lline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
-				string=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=0")
-				name=$(echo "$string"  | sed 's/^.*<p>Download //;s/<\/p>.*$//')
-				link=$(echo "$string"  | cut -d "\"" -f2 | cut -d "\"" -f1 | base64 -d)
-				printf "${YE}$name${NC} \n"
-				echo "$link"
-			done <<< "$gdrivepostbatch"
+        animenumber=$(curl -s "$line" | grep -oP '(?<=postid-)[0-9]+')
+        listofgdrive=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
+        gdrivebatch=$(echo "$listofgdrive" | grep -B10000 "<a>Batch</a>" | sed '$ d' )
+        if echo "$gdrivebatch" | grep -q "$resolution" ; then
+                gdriveprebatch=$(echo "$gdrivebatch" | grep "$resolution" | head -n1)
+        else
+                gdriveprebatch=$(echo "$gdrivebatch" | head -n1)
+        fi
+        gdrivepostbatch=$(echo "$listofgdrive" | grep -A10000 "<a>Batch</a>" | tail -n +2 )
+#       listofkaizoku=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=2&useworker=yes&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
+#       kaiprebatch=$(echo "$listofkaizoku" | grep -B10000 "<a>Batch</a>" | sed '$ d' )
+#       kaipostbatch=$(echo "$listofkaizoku" | grep -A10000 "<a>Batch</a>" | tail -n +2 )
+#       printf "${RED}Google Drive${NC} \n"
+        while IFS= read -r gline ; do
+                name=$(echo "$gline" | sed 's/^.*<p>//;s/<\/p>.*$//')
+                printf "${GRE}-- $name${NC} \n"
+                        num=$(echo "$gline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
+                        listoflist=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
+                        while IFS= read -r lline ; do
+                                num=$(echo "$lline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
+                                string=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=0")
+                                name=$(echo "$string"  | sed 's/^.*<p>Download //;s/<\/p>.*$//')
+                                link=$(echo "$string"  | cut -d "\"" -f2 | cut -d "\"" -f1 | base64 -d)
+                                printf "${YE}$name${NC} \n"
+                                echo "$link"
+                        done <<< "$listoflist"
+        done <<< "$gdriveprebatch"
+                        while IFS= read -r lline ; do
+                                num=$(echo "$lline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
+                                string=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=0")
+                                name=$(echo "$string"  | sed 's/^.*<p>Download //;s/<\/p>.*$//')
+                                link=$(echo "$string"  | cut -d "\"" -f2 | cut -d "\"" -f1 | base64 -d)
+                                printf "${GRE}$name${NC} \n"
+                                echo "$link"
+                        done <<< "$gdrivepostbatch"
 done <<< "$animelist"
 }
 
