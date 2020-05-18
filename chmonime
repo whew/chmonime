@@ -16,8 +16,8 @@ GRAY='\033[1;30m'
 NC='\033[0m'
 printf "${GRAY}Script by asakura42. Please support the sites that helped you. And most importantly, support those who made the anime you found.${NC}\n"
 read -p "Title name: " titlename
-titlenameplus=$(sed 's/ /+/g' <<< $titlename)
-titlenamedots=$(sed 's/ /\./g' <<< $titlename)
+titlenameplus=$(sed 's/ /+/g' <<< "$titlename")
+titlenamedots=$(sed 's/ /\./g' <<< "$titlename")
 
 printf "${RED}Mega and Google Drive${NC}\n"
 
