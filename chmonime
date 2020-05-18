@@ -35,11 +35,11 @@ animeraworg () {
 echo "------------------------------------------"
 printf "              ${GRE}animeraw.org${NC}\n"
 echo "------------------------------------------"
-animeraworglist=$(lynx -dump "https://animeraw.org/?s=$titlenameplus" | sed '/?s/d' | egrep -o 'https?://[^ ]+' | sort | uniq -c | grep '^\s*4\s' | sed 's/^\s*[0-9]*\s*//')
+animeraworglist=$(curl -s "https://animeraw.org/?s=$titlenameplus" |  egrep -o 'https?://[^ ]+' | sed 's/".*$//g' | sort | uniq -c | sort -nr  | grep '^\s*4\s' | sed 's/^\s*[0-9]*\s*//')
 while IFS= read -r line ; do
 	link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/Anime Raw$//')
 	printf "${GRE}$link${NC}\n"
-	lynx -dump "$line" | grep "https://mega.nz" | awk '{print $2}'
+	curl -s "$line" | egrep -o 'https?://mega.nz[^ ]+'
 done <<< "$animeraworglist"
 }
 
@@ -48,7 +48,7 @@ animekayo () {
 echo "------------------------------------------"
 printf "               ${GRE}Animekayo${NC}\n"
 echo "------------------------------------------"
-animekayolist=$(lynx -dump "https://animekayo.com/?s=$titlenameplus" | awk '/Hidden links:/,0'  | grep "$titlenamedots" | sed '/?s/d' | sed 's/^.*https/https/g')
+animekayolist=$(curl -s "https://animekayo.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/^.*\.jpg/d;/animekayo.com\/search/d'  | grep "$titlenamedots"  | sort -u)
 while IFS= read -r line ; do
 	number=$(curl -s "$line" | grep -Eo "p=[0-9]+" | head -n1 | sed 's/p=//')
 	title=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}' | awk -F "|" '{print $1}')
@@ -71,7 +71,7 @@ echo "------------------------------------------"
 printf "             ${GRE}AnimeKaizoku${NC}\n"
 echo "------------------------------------------"
 # animekaizoku
-animelist=$(lynx -dump "https://animekaizoku.com/?s=$titlenameplus" | awk '/Hidden links:/,0'  | grep "$titlenamedots" | sed '/?s/d' | sed 's/^.*https/https/g')
+animelist=$(curl -s "https://animekaizoku.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/^.*\.jpg/d;/animekaizoku.com\/search/d'  | grep "$titlenamedots"  | sort -u)
 while IFS= read -r line ; do
 	animenumber=$(curl -s "$line" | grep -oP '(?<=postid-)[0-9]+')
 	listofgdrive=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
