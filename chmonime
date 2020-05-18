@@ -1,0 +1,117 @@
+#!/bin/bash
+# Uses list of sites:
+# https://animekaizoku.com
+# https://sites.google.com/view/anime-raws-list/home
+# https://animeraw.org
+# https://animekayo.com/
+
+LANG=C
+
+resolution="720p"
+
+RED='\033[0;31m'
+GRE='\033[0;32m'
+YE='\033[0;33m'
+GRAY='\033[1;30m'
+NC='\033[0m'
+printf "${GRAY}Script by asakura42. Please support the sites that helped you. And most importantly, support those who made the anime you found.${NC}\n"
+read -p "Title name: " titlename
+titlenameplus=$(sed 's/ /+/g' <<< $titlename)
+titlenamedots=$(sed 's/ /\./g' <<< $titlename)
+
+printf "${RED}Mega and Google Drive${NC}\n"
+
+animerawslist () {
+# Anime raws list
+echo "------------------------------------------"
+printf "             ${GRE}Anime Raws List${NC}\n"
+echo "------------------------------------------"
+animerawslist=$(curl -s "https://sites.google.com/view/anime-raws-list/home" | sed 's/<em>/\n/g;s/<\/em>/\n/g;s/<a class/\n/g' | grep -i -B1 "$titlenamedots" | head -n1 | sed 's/^.*https/https/;s/&amp.*$//;s/%3A/:/g;s/%2F/\//g;s/%23/#/')
+echo "$animerawslist"
+}
+
+animeraworg () {
+# animeraw.org
+echo "------------------------------------------"
+printf "              ${GRE}animeraw.org${NC}\n"
+echo "------------------------------------------"
+animeraworglist=$(lynx -dump "https://animeraw.org/?s=$titlenameplus" | sed '/?s/d' | egrep -o 'https?://[^ ]+' | sort | uniq -c | grep '^\s*4\s' | sed 's/^\s*[0-9]*\s*//')
+while IFS= read -r line ; do
+	link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/Anime Raw$//')
+	printf "${GRE}$link${NC}\n"
+	lynx -dump "$line" | grep "https://mega.nz" | awk '{print $2}'
+done <<< "$animeraworglist"
+}
+
+animekayo () {
+# Looking at animekayo
+echo "------------------------------------------"
+printf "               ${GRE}Animekayo${NC}\n"
+echo "------------------------------------------"
+animekayolist=$(lynx -dump "https://animekayo.com/?s=$titlenameplus" | awk '/Hidden links:/,0'  | grep "$titlenamedots" | sed '/?s/d' | sed 's/^.*https/https/g')
+while IFS= read -r line ; do
+	number=$(curl -s "$line" | grep -Eo "p=[0-9]+" | head -n1 | sed 's/p=//')
+	title=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}' | awk -F "|" '{print $1}')
+	printf "${GRE}$title${NC}\n"
+	link=$(curl -s 'https://animekayo.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$number&mirror=1&num=no")
+	linkpart=$(echo "$link" | sed 's/^.*\///')
+	ouo=$(curl -s -XPOST -H 'Content-Type: application/x-www-form-urlencoded' -d "domain=ouo.press&path=$linkpart" 'https://universal-bypass.org/crowd/query_v1')
+	if test -z "$ouo"
+		then
+	echo "$link"
+		else
+	echo "$ouo"
+		fi
+done <<< "$animekayolist"
+}
+
+animekaizoku () {
+# Animekaizoku
+echo "------------------------------------------"
+printf "             ${GRE}AnimeKaizoku${NC}\n"
+echo "------------------------------------------"
+# animekaizoku
+animelist=$(lynx -dump "https://animekaizoku.com/?s=$titlenameplus" | awk '/Hidden links:/,0'  | grep "$titlenamedots" | sed '/?s/d' | sed 's/^.*https/https/g')
+while IFS= read -r line ; do
+	animenumber=$(curl -s "$line" | grep -oP '(?<=postid-)[0-9]+')
+	listofgdrive=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
+	gdrivebatch=$(echo "$listofgdrive" | grep -B10000 "<a>Batch</a>" | sed '$ d' )
+	if echo "$gdrivebatch" | grep -q "$resolution" ; then
+		gdriveprebatch=$(echo "$gdrivebatch" | grep "$resolution" | head -n1)
+	else
+		gdriveprebatch=$(echo "$gdrivebatch" | head -n1)
+	fi
+	gdrivepostbatch=$(echo "$listofgdrive" | grep -A10000 "<a>Batch</a>" | tail -n +2 )
+#	listofkaizoku=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=2&useworker=yes&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
+#	kaiprebatch=$(echo "$listofkaizoku" | grep -B10000 "<a>Batch</a>" | sed '$ d' )
+#	kaipostbatch=$(echo "$listofkaizoku" | grep -A10000 "<a>Batch</a>" | tail -n +2 )
+#	printf "${RED}Google Drive${NC} \n"
+	while IFS= read -r gline ; do
+		name=$(echo "$gline" | sed 's/^.*<p>//;s/<\/p>.*$//')
+		printf "${GRE}$name${NC} \n"
+			num=$(echo "$gline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
+			listoflist=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
+			while IFS= read -r lline ; do
+				num=$(echo "$lline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
+				string=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=0")
+				name=$(echo "$string"  | sed 's/^.*<p>Download //;s/<\/p>.*$//')
+				link=$(echo "$string"  | cut -d "\"" -f2 | cut -d "\"" -f1 | base64 -d)
+				printf "${YE}$name${NC} \n"
+				echo "$link"
+			done <<< "$listoflist"
+	done <<< "$gdriveprebatch"
+			while IFS= read -r lline ; do
+				num=$(echo "$lline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1)
+				string=$(curl -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=$num&folder=0")
+				name=$(echo "$string"  | sed 's/^.*<p>Download //;s/<\/p>.*$//')
+				link=$(echo "$string"  | cut -d "\"" -f2 | cut -d "\"" -f1 | base64 -d)
+				printf "${YE}$name${NC} \n"
+				echo "$link"
+			done <<< "$gdrivepostbatch"
+done <<< "$animelist"
+}
+
+animerawslist
+animeraworg
+animekayo
+animekaizoku
