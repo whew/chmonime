@@ -27,7 +27,7 @@ animerawslist () {
 echo "------------------------------------------"
 printf "             ${GRE}Anime Raws List${NC}\n"
 echo "------------------------------------------"
-animerawslist=$("$curlcmd" -s "https://sites.google.com/view/anime-raws-list/home" | sed 's/<em>/\n/g;s/<\/em>/\n/g;s/<a class/\n/g' | grep -i -B1 "$titlenamedots" | head -n1 | sed 's/^.*https/https/;s/&amp.*$//;s/%3A/:/g;s/%2F/\//g;s/%23/#/')
+animerawslist=$($curlcmd -s "https://sites.google.com/view/anime-raws-list/home" | sed 's/<em>/\n/g;s/<\/em>/\n/g;s/<a class/\n/g' | grep -i -B1 "$titlenamedots" | head -n1 | sed 's/^.*https/https/;s/&amp.*$//;s/%3A/:/g;s/%2F/\//g;s/%23/#/')
 echo "$animerawslist"
 }
 
@@ -54,15 +54,19 @@ while IFS= read -r line ; do
         number=$($curlcmd -s "$line" | grep -Eo "p=[0-9]+" | head -n1 | sed 's/p=//')
         title=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}' | awk -F "|" '{print $1}')
         printf "${GRE}-- $title${NC}\n"
-        link=$($curlcmd -s 'https://animekayo.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$number&mirror=1&num=no")
-        linkpart=$(echo "$link" | sed 's/^.*\///')
-        ouo=$($curlcmd -s -XPOST -H 'Content-Type: application/x-www-form-urlencoded' -d "domain=ouo.press&path=$linkpart" 'https://universal-bypass.org/crowd/query_v1')
-        if test -z "$ouo"
-                then
-        echo "$link"
-                else
-        echo "$ouo"
-                fi
+        list=$($curlcmd -s 'https://animekayo.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=number&mirror=1&num=&folder=true"  | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' |  sed '/myanime.space/d;/<\/div>/d')
+        while IFS= read -r kayoline ; do
+                kayonum=$(echo "$kayoline"  | cut -d "(" -f2 | cut -d ")" -f1 | cut -d "'" -f2 | cut -d "'" -f1 )
+                link=$($curlcmd -s 'https://animekayo.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$number&mirror=1&num=$kayonum")
+                linkpart=$(echo "$link" | sed 's/^.*\///')
+                ouo=$($curlcmd -s -XPOST -H 'Content-Type: application/x-www-form-urlencoded' -d "domain=ouo.press&path=$linkpart" 'https://universal-bypass.org/crowd/query_v1')
+                if test -z "$ouo"
+                        then
+                echo "$link"
+                        else
+                echo "$ouo"
+                        fi
+        done <<< "$list"
 done <<< "$animekayolist"
 }
 
