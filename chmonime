@@ -40,7 +40,7 @@ animeraworglist=$($curlcmd -s "https://animeraw.org/?s=$titlenameplus" |  egrep 
 while IFS= read -r line ; do
         link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/Anime Raw$//')
         printf "${GRE}-- $link${NC}\n"
-        $curlcmd -s "$line" | egrep -o 'https?://mega.nz[^ ]+'
+        $curlcmd -s "$line" | egrep -o 'https?://mega.nz[^ ]+' | sed 's/\".*$//g' | sort -u
 done <<< "$animeraworglist"
 }
 
@@ -49,7 +49,7 @@ animekayo () {
 echo "------------------------------------------"
 printf "               ${GRE}Animekayo${NC}\n"
 echo "------------------------------------------"
-animekayolist=$($curlcmd -s "https://animekayo.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/\.jpg$/d;/\.png$/d;/animekayo.com\/search/d'  | grep "$titlenamedots"  | sort -u)
+animekayolist=$($curlcmd -s "https://animekayo.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/\.jpg$/d;/\.png$/d;/animekayo.com\/search/d'  | grep -i "$titlenamedots"  | sort -u)
 while IFS= read -r line ; do
         number=$($curlcmd -s "$line" | grep -Eo "p=[0-9]+" | head -n1 | sed 's/p=//')
         title=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}' | awk -F "|" '{print $1}')
@@ -76,7 +76,7 @@ echo "------------------------------------------"
 printf "             ${GRE}AnimeKaizoku${NC}\n"
 echo "------------------------------------------"
 # animekaizoku
-animelist=$($curlcmd -s "https://animekaizoku.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/\.jpg$/d;/\.png$/d;/animekaizoku.com\/search/d'  | grep "$titlenamedots"  | sort -u)
+animelist=$($curlcmd -s "https://animekaizoku.com/?s=$titlenameplus" | egrep -o 'https?://[^ ]+' | sed 's/".*$//g;s/).*$//g;s/#.*$//g;/\.jpg$/d;/\.png$/d;/animekaizoku.com\/search/d'  | grep -i "$titlenamedots"  | sort -u)
 while IFS= read -r line ; do
         animenumber=$($curlcmd -s "$line" | grep -oP '(?<=postid-)[0-9]+')
         listofgdrive=$($curlcmd -s 'https://animekaizoku.com/wp-admin/admin-ajax.php' --data "action=DDL&post_id=$animenumber&mirror=1&useworker=no&num=&folder=true" | grep -i -e '</\?TABLE\|</\?TD\|</\?TR\|</\?TH' | sed 's/^[\ \t]*//g' | tr -d '\n' | sed 's/<\/TR[^>]*>/\n/Ig'  | sed 's/<\/\?\(TABLE\|TR\)[^>]*>//Ig' | sed '/myanime.space/d;/<\/div>/d')
