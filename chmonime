@@ -38,7 +38,7 @@ printf "              ${GRE}animeraw.org${NC}\n"
 echo "------------------------------------------"
 animeraworglist=$($curlcmd -s "https://animeraw.org/?s=$titlenameplus" |  egrep -o 'https?://[^ ]+' | sed 's/".*$//g' | sort | uniq -c | sort -nr  | grep '^\s*4\s' | sed 's/^\s*[0-9]*\s*//')
 while IFS= read -r line ; do
-        link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/Anime Raw$//')
+        link=$(wget -qO- "$line" | gawk -v IGNORECASE=1 -v RS='</title' 'RT{gsub(/.*<title[^>]*>/,"");print;exit}'| sed 's/&#8211; Anime Raw$//;s/&#8211;/-/g')
         printf "${GRE}-- $link${NC}\n"
         $curlcmd -s "$line" | egrep -o 'https?://mega.nz[^ ]+' | sed 's/\".*$//g' | sort -u
 done <<< "$animeraworglist"
